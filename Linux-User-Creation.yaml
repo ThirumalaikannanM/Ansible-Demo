@@ -1,73 +1,73 @@
+---
 - name: Create user, SSH key pair, and configure authorized keys
-  hosts: webservers
-  become: yes # Use become to switch to root if necessary
+  hosts: all
+  become: yes  # Use become to switch to root if necessary
   vars:
-    username: "appadmin" # Specify the user to create and configure
-    ssh_key_path: "/home/ec2-user/ssh_other_user" # Path where keys will be stored
+    username: "appadmin"  # Specify the user to create and configure
+    ssh_key_path: "/home/ec2-user/ssh_other_user"  # Path where keys will be stored
 
   tasks:
-  - name: Create the specified user
-    user:
-      name: "{{ username }}"
-      state: present
-      shell: /bin/bash # Specify the desired shell, e.g., /bin/bash
-      create_home: yes # Create a home directory for the user
+    - name: Create the specified user
+      user:
+        name: "{{ username }}"
+        state: present
+        shell: /bin/bash  # Specify the desired shell, e.g., /bin/bash
+        create_home: yes   # Create a home directory for the user
 
-  - name: Ensure the directory for SSH keys exists
-    file:
-      path: "{{ ssh_key_path }}"
-      state: directory
-      mode: '0700'
-      owner: ec2-user
-      group: ec2-user
+    - name: Ensure the directory for SSH keys exists
+      file:
+        path: "{{ ssh_key_path }}"
+        state: directory
+        mode: '0700'
+        owner: ec2-user
+        group: ec2-user
 
-  - name: Generate SSH key pair
-    openssh_keypair:
-      path: "{{ ssh_key_path }}/{{ username }}"
-      type: rsa
-      bits: 2048
-      state: present
-    register: keypair
+    - name: Generate SSH key pair
+      command: >
+        ssh-keygen -t rsa -b 2048 -f {{ ssh_key_path }}/{{ username }} -N "" 
+      args:
+        creates: "{{ ssh_key_path }}/{{ username }}.pub"  # Only run if the key doesn't exist
+      register: keypair_gen
 
-  - name: Ensure .ssh directory exists for the user
-    file:
-      path: "/home/{{ username }}/.ssh"
-      state: directory
-      mode: '0700'
-      owner: "{{ username }}"
-      group: "{{ username }}"
+    - name: Ensure .ssh directory exists for the user
+      file:
+        path: "/home/{{ username }}/.ssh"
+        state: directory
+        mode: '0700'
+        owner: "{{ username }}"
+        group: "{{ username }}"
 
-  - name: Add public key to authorized_keys
-    authorized_key:
-      user: "{{ username }}"
-      state: present
-      key: "{{ keypair.public_key }}"
-      path: "/home/{{ username }}/.ssh/authorized_keys"
+    - name: Add public key to authorized_keys
+      authorized_key:
+        user: "{{ username }}"
+        state: present
+        key: "{{ lookup('file', ssh_key_path + '/' + username + '.pub') }}"
+        path: "/home/{{ username }}/.ssh/authorized_keys"
 
-  - name: Set permissions for authorized_keys
-    file:
-      path: "/home/{{ username }}/.ssh/authorized_keys"
-      mode: '0600'
-      owner: "{{ username }}"
-      group: "{{ username }}"
+    - name: Set permissions for authorized_keys
+      file:
+        path: "/home/{{ username }}/.ssh/authorized_keys"
+        mode: '0600'
+        owner: "{{ username }}"
+        group: "{{ username }}"
 
-  - name: Ensure the SSH key files have the correct ownership
-    file:
-      path: "{{ ssh_key_path }}/{{ username }}"
-      owner: ec2-user
-      group: ec2-user
-      mode: '0600'
+    - name: Ensure the SSH key files have the correct ownership
+      file:
+        path: "{{ ssh_key_path }}/{{ username }}"
+        owner: ec2-user
+        group: ec2-user
+        mode: '0600'
 
-  - name: Ensure the SSH public key file has the correct ownership
-    file:
-      path: "{{ ssh_key_path }}/{{ username }}.pub"
-      owner: ec2-user
-      group: ec2-user
-      mode: '0644'
+    - name: Ensure the SSH public key file has the correct ownership
+      file:
+        path: "{{ ssh_key_path }}/{{ username }}.pub"
+        owner: ec2-user
+        group: ec2-user
+        mode: '0644'
 
-  - name: Download the private key to the local machine
-    fetch:
-      src: "{{ ssh_key_path }}/{{ username }}"
-      dest: "./"
-      flat: yes
-    delegate_to: localhost
+    - name: Download the private key to the local machine
+      fetch:
+        src: "{{ ssh_key_path }}/{{ username }}"
+        dest: "./"
+        flat: yes
+      delegate_to: localhost
