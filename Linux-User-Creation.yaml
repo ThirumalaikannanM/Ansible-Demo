@@ -1,5 +1,5 @@
 - name: Create user, SSH key pair, and configure authorized keys
-  hosts: your_ec2_instance
+  hosts: webservers
   become: yes # Use become to switch to root if necessary
   vars:
     username: "appadmin" # Specify the user to create and configure
