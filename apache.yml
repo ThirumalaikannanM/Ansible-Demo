@@ -1,16 +1,18 @@
-- hosts: all
+---
+- hosts: webservers 
   become: True
   tasks:
     - name: Install packages
       yum:
-        name: "nginx"
+        name: "httpd"
         state: "present"
-    - name: Start nginx server
+    - name: Start Apache server
       service:
-        name: nginx
+        name: httpd
         state: started
         enabled: True
     - name: Deploy static website
       copy:
-        src: index.html # We have define a html page 
+        src: index.html
         dest: /var/www/html/
+...
