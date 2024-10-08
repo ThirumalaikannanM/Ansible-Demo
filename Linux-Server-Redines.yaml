@@ -1,0 +1,67 @@
+- name: Setup server
+  hosts: all
+  become: yes
+
+  tasks:
+  - name: Update all packages
+    yum:
+      name: '*'
+      state: latest
+
+  - name: Set timezone to Asia/Kolkata
+    command: timedatectl set-timezone Asia/Kolkata
+
+  - name: Add timestamp format to history
+    lineinfile:
+      path: /etc/profile.d/timestamp.sh
+      line: 'HISTTIMEFORMAT="%Y%m%d %T "'
+      create: yes
+
+  - name: Add timestamp format to bashrc
+    lineinfile:
+      path: ~/.bashrc
+      line: 'export HISTTIMEFORMAT="%d/%m/%y %T "'
+
+  - name: Configure SSH to use IPv4 only
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      line: 'AddressFamily inet'
+
+  - name: Restart SSH service
+    service:
+      name: sshd
+      state: restarted
+
+  - name: Disable IPv6
+    lineinfile:
+      path: /etc/sysctl.conf
+      line: 'net.ipv6.conf.all.disable_ipv6 = 1'
+      state: present
+
+  - name: Disable IPv6 default
+    lineinfile:
+      path: /etc/sysctl.conf
+      line: 'net.ipv6.conf.default.disable_ipv6 = 1'
+      state: present
+
+  - name: Apply sysctl settings
+    command: sysctl -p
+
+# - name: Create swap file
+#   command: dd if=/dev/zero of=/swapfile bs=1M count=20480
+
+# - name: Set swap file permissions
+#   file:
+#     path: /swapfile
+#     mode: '0600'
+
+# - name: Make swap file
+#   command: mkswap /swapfile
+
+# - name: Enable swap file
+#   command: swapon /swapfile
+
+# - name: Add swap file to fstab
+#   lineinfile:
+#     path: /etc/fstab
+#     line: '/swapfile swap swap defaults 0 0'
